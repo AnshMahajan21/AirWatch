@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <script>
+      // Gracefully catch and suppress dev WebSocket HMR errors in preview iframe (per environment constraints)
+      window.addEventListener('unhandledrejection', function(event) {
+        var reason = event.reason;
+        var msg = (reason && (reason.message || String(reason))) || '';
+        var stack = (reason && reason.stack) || '';
+        if (
+          msg.includes('WebSocket') ||
+          msg.includes('vite:ws') ||
+          stack.includes('createWebSocketModuleRunnerTransport') ||
+          stack.includes('@vite/client')
+        ) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }
+      });
+      window.addEventListener('error', function(event) {
+        var msg = event.message || '';
+        var filename = event.filename || '';
+        if (
+          msg.includes('WebSocket') ||
+          msg.includes('createWebSocketModuleRunnerTransport') ||
+          filename.includes('@vite/client')
+        ) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }
+      });
+    </script>
+    <title>AirWatch - Atmospheric Air Quality Decision Engine</title>
+    <meta name="description" content="AirWatch delivers personalized, actionable real-time air quality guidance for Delhi NCR. Convert raw AQI into safe activity windows, school advisories, and cumulative exposure tracking." />
+    <meta name="keywords" content="AirWatch, AQI, Delhi Air Quality, CPCB, AQICN, Air Pollution, Smog Alert, Safe Windows, School Outdoor Safety" />
+    <meta name="author" content="AirWatch" />
+    <meta name="theme-color" content="#0f172a" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://d1yyj8b05dxmwp.cloudfront.net/" />
+    <meta property="og:title" content="AirWatch - Atmospheric Air Quality Decision Engine" />
+    <meta property="og:description" content="AirWatch delivers personalized, actionable real-time air quality guidance for Delhi NCR. Convert raw AQI into safe activity windows, school advisories, and cumulative exposure tracking." />
+    <meta property="og:image" content="https://d1yyj8b05dxmwp.cloudfront.net/favicon.png" />
+    <meta property="og:image:secure_url" content="https://d1yyj8b05dxmwp.cloudfront.net/favicon.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:image:alt" content="AirWatch Logo Favicon" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="AirWatch - Atmospheric Air Quality Decision Engine" />
+    <meta name="twitter:description" content="Personalized, actionable air quality guidance for Delhi NCR." />
+    <meta name="twitter:image" content="https://d1yyj8b05dxmwp.cloudfront.net/favicon.png" />
+
+    <!-- Favicon & Touch Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-stone-900 text-stone-100 antialiased selection:bg-amber-500/30 selection:text-amber-200">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

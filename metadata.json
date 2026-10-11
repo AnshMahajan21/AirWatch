@@ -1,0 +1,10 @@
+{
+  "name": "AirWatch",
+  "description": "Personalised, actionable air quality guidance for Delhi NCR. Turns raw AQI into safe activity windows, school advisories, and cumulative exposure tracking.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

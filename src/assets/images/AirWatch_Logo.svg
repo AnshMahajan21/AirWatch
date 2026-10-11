@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <!-- Crisp Circular Dial Plate Matching Uploaded Logo -->
+  <circle cx="250" cy="250" r="248" fill="#FFFFFF" />
+
+  <!-- Clock Roman Numerals Perimeter -->
+  <g font-family="Times New Roman, Baskerville, 'Playfair Display', Georgia, serif" font-weight="800" font-size="52" fill="#1C1917" text-anchor="middle" dominant-baseline="central">
+    <text x="250" y="58" transform="rotate(0 250 250)">XII</text>
+    <text x="250" y="58" transform="rotate(30 250 250)">I</text>
+    <text x="250" y="58" transform="rotate(60 250 250)">II</text>
+    <text x="250" y="58" transform="rotate(90 250 250)">III</text>
+    <text x="250" y="58" transform="rotate(120 250 250)">IV</text>
+    <text x="250" y="58" transform="rotate(150 250 250)">V</text>
+    <text x="250" y="58" transform="rotate(180 250 250)">VI</text>
+    <text x="250" y="58" transform="rotate(210 250 250)">VII</text>
+    <text x="250" y="58" transform="rotate(240 250 250)">VIII</text>
+    <text x="250" y="58" transform="rotate(270 250 250)">IX</text>
+    <text x="250" y="58" transform="rotate(300 250 250)">X</text>
+    <text x="250" y="58" transform="rotate(330 250 250)">XI</text>
+  </g>
+
+  <!-- Central Air / Wind Swirl Graphic -->
+  <g id="wind-graphic">
+    <!-- Soft Blue Body Fill for the Wind Stream -->
+    <!-- Top swirl body -->
+    <path d="M 216 230 C 220 190 230 148 265 138 C 295 130 325 150 326 182 C 327 215 295 240 262 232 C 242 226 238 206 250 192 C 262 178 284 184 286 200 C 286 208 278 214 270 212 C 255 208 255 188 270 175 C 285 162 308 175 306 195 C 304 220 275 235 248 222 C 235 215 228 226 216 230 Z" fill="#BAE6FD" />
+
+    <!-- Right swirl body -->
+    <path d="M 270 240 C 300 220 345 205 375 225 C 395 240 398 270 380 292 C 360 310 325 305 318 280 C 314 260 332 245 350 252 C 362 258 362 274 352 280 C 344 284 336 278 338 270 C 340 260 354 260 356 268 C 352 278 335 285 330 270 C 325 250 355 235 372 250 C 385 262 380 282 365 290 C 335 300 295 275 270 240 Z" fill="#BAE6FD" />
+
+    <!-- Bottom swirl body -->
+    <path d="M 180 275 C 210 295 235 325 260 350 C 280 368 308 360 315 338 C 322 312 298 290 270 292 C 250 294 240 312 250 328 C 260 340 278 338 282 325 C 285 315 275 308 268 312 C 258 318 260 330 270 330 C 278 330 280 320 274 315 C 265 305 285 298 295 310 C 305 325 298 345 280 350 C 255 355 232 328 205 305 C 190 290 180 280 180 275 Z" fill="#BAE6FD" />
+
+    <!-- Main Gust Connecting Flow Body Fill -->
+    <path d="M 115 262 C 145 250 180 240 220 238 C 250 238 285 248 315 260 C 340 270 365 285 390 275 C 385 288 360 300 335 298 C 295 292 260 272 220 268 C 180 265 145 280 115 290 C 130 280 135 275 115 262 Z" fill="#BAE6FD" />
+    <path d="M 130 285 C 160 278 200 275 240 282 C 270 288 300 302 325 320 C 300 326 270 315 245 308 C 210 298 175 305 145 318 C 150 305 145 295 130 285 Z" fill="#BAE6FD" />
+    <path d="M 155 312 C 185 305 220 310 250 325 C 270 335 288 348 305 342 C 285 352 260 346 240 338 C 210 328 185 332 165 345 C 170 332 168 322 155 312 Z" fill="#BAE6FD" />
+
+    <!-- Crisp Black Line Art Matching User Drawing -->
+    <g fill="none" stroke="#1C1917" stroke-width="4.8" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Top spiral swirl stroke -->
+      <path d="M 218 220 C 220 182 232 144 268 135 C 296 128 325 146 325 178 C 325 210 296 232 265 225 C 248 220 244 204 252 192 C 262 178 282 184 284 198 C 285 208 275 212 268 208" />
+
+      <!-- Right spiral swirl stroke -->
+      <path d="M 268 238 C 298 218 342 205 372 222 C 392 236 395 265 378 286 C 360 304 328 300 320 278 C 316 260 332 246 348 252 C 360 258 358 274 348 278 C 340 280 336 272 340 266" />
+
+      <!-- Bottom spiral swirl stroke -->
+      <path d="M 188 280 C 215 302 238 330 262 352 C 282 368 308 360 314 338 C 320 314 298 294 272 296 C 254 298 245 314 254 328 C 264 338 280 335 282 324 C 284 314 274 308 268 312" />
+
+      <!-- Horizontal streaming air flow lines -->
+      <path d="M 112 265 C 150 252 195 242 238 244 C 275 246 312 258 348 272 C 368 280 388 282 395 272" stroke-width="4.5" />
+      <path d="M 125 280 C 165 270 208 266 250 274 C 285 280 318 296 348 308 C 365 315 382 312 388 305" stroke-width="4.2" />
+      <path d="M 145 298 C 182 292 222 294 258 308 C 282 318 305 328 322 322" stroke-width="4.0" />
+      <path d="M 168 320 C 198 315 230 322 258 338 C 274 346 290 350 300 344" stroke-width="3.8" />
+      <path d="M 198 342 C 224 340 250 348 272 362" stroke-width="3.6" />
+
+      <!-- Subtle wind gust motion marks / ticks -->
+      <path d="M 215 142 C 222 135 230 134 238 138" stroke-width="3.4" />
+      <path d="M 206 160 C 214 152 222 154 228 160" stroke-width="3.4" />
+      <path d="M 326 192 C 334 192 342 198 346 205" stroke-width="3.4" />
+      <path d="M 335 208 C 340 210 345 216 346 222" stroke-width="3.4" />
+      <path d="M 390 232 C 395 236 398 242 398 248" stroke-width="3.2" />
+      <path d="M 308 238 C 314 234 320 235 324 240" stroke-width="3.2" />
+      <path d="M 292 255 C 296 258 298 263 297 268" stroke-width="3.2" />
+      <path d="M 226 354 C 232 360 238 362 245 360" stroke-width="3.4" />
+      <path d="M 306 338 C 312 344 316 348 318 355" stroke-width="3.4" />
+      <path d="M 168 260 C 174 256 182 256 188 260" stroke-width="3.0" />
+    </g>
+  </g>
+</svg>

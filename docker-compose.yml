@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  # Local DynamoDB for offline SAM CLI testing
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    container_name: airwatch-dynamodb-local
+    ports:
+      - "8000:8000"
+    command: "-jar DynamoDBLocal.jar -sharedDb -inMemory"
+    healthcheck:
+      test: ["CMD-SHELL", "[ $(curl -s -o /dev/null -w '%{http_code}' http://localhost:8000) -eq 400 ] || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Optional LocalStack emulation for full AWS offline testing (Lambda, SNS, S3, CloudWatch)
+  localstack:
+    image: localstack/localstack:latest
+    container_name: airwatch-localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=dynamodb,sns,s3,cloudwatch,events
+      - AWS_DEFAULT_REGION=ap-south-1
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"

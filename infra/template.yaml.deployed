@@ -1,0 +1,535 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'Saans - Atmospheric Air Decision Engine Serverless backend for Environmental
+  Hacks 2026 (Track 01: Air). Provides real-time CPCB AQI decisions, safe window calculations,
+  school activity advisories, and SNS alerts.
+
+  '
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 256
+    Runtime: nodejs24.x
+    Architectures:
+    - arm64
+    Environment:
+      Variables:
+        READINGS_TABLE:
+          Ref: ReadingsTable
+        SUBSCRIPTIONS_TABLE:
+          Ref: SubscriptionsTable
+        ALERT_TOPIC_ARN:
+          Ref: AlertsTopic
+        NODE_OPTIONS: --enable-source-maps
+  Api:
+    Cors:
+      AllowMethods: '''GET,POST,OPTIONS'''
+      AllowHeaders: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key'''
+      AllowOrigin: '''*'''
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: prod
+    AllowedValues:
+    - dev
+    - staging
+    - prod
+    Description: Deployment environment
+  GeminiApiKey:
+    Type: String
+    Default: ''
+    NoEcho: true
+    Description: Optional Gemini key for the chat assistant (leave empty to use Bedrock
+      or the built-in fallback)
+  BedrockRegion:
+    Type: String
+    Default: us-east-1
+    Description: Region used for Bedrock calls (the assistant falls back gracefully
+      if model access is not enabled)
+  BedrockModelId:
+    Type: String
+    Default: anthropic.claude-3-5-sonnet-20241022-v2:0
+Resources:
+  ReadingsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName:
+        Fn::Sub: saans-readings-${EnvironmentName}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+      - AttributeName: pk
+        AttributeType: S
+      - AttributeName: sk
+        AttributeType: S
+      KeySchema:
+      - AttributeName: pk
+        KeyType: HASH
+      - AttributeName: sk
+        KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: false
+      Tags:
+      - Key: Project
+        Value: Saans
+      - Key: Track
+        Value: Air
+    Metadata:
+      SamResourceId: ReadingsTable
+  SubscriptionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName:
+        Fn::Sub: saans-subscriptions-${EnvironmentName}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+      - AttributeName: email
+        AttributeType: S
+      KeySchema:
+      - AttributeName: email
+        KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+      - Key: Project
+        Value: Saans
+    Metadata:
+      SamResourceId: SubscriptionsTable
+  AlertsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName:
+        Fn::Sub: saans-air-alerts-${EnvironmentName}
+      DisplayName: Saans Clean Air Advisories
+    Metadata:
+      SamResourceId: AlertsTopic
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: $default
+      CorsConfiguration:
+        AllowOrigins:
+        - '*'
+        AllowMethods:
+        - GET
+        - POST
+        - OPTIONS
+        AllowHeaders:
+        - Content-Type
+        - Authorization
+        MaxAge: 300
+    Metadata:
+      SamResourceId: HttpApi
+  AirFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+        - src/handlers/air.ts
+        External:
+        - '@aws-sdk/*'
+        Sourcemap: true
+        Target: es2022
+      SamResourceId: AirFunction
+    Properties:
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-dnczrvcl5cgt/saans-prod/c3eaad3849997c1966bf927c75219645
+      Handler: air.handler
+      Description: Returns live/cached AQI, PM2.5, PM10, hourly forecast and nearest
+        station info
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName:
+            Ref: ReadingsTable
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: ReadingsTable
+      Events:
+        GetAir:
+          Type: HttpApi
+          Properties:
+            ApiId:
+              Ref: HttpApi
+            Path: /air
+            Method: GET
+  VerdictFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+        - src/handlers/verdict.ts
+        External:
+        - '@aws-sdk/*'
+        Sourcemap: true
+        Target: es2022
+      SamResourceId: VerdictFunction
+    Properties:
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-dnczrvcl5cgt/saans-prod/4bfae5578dcc7134dd10f7b0228e7a13
+      Handler: verdict.handler
+      Description: Returns personalized go/no-go, safe 2-3 hour window, and avoid
+        hours based on persona
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName:
+            Ref: ReadingsTable
+      Events:
+        GetVerdict:
+          Type: HttpApi
+          Properties:
+            ApiId:
+              Ref: HttpApi
+            Path: /verdict
+            Method: GET
+  ExposureFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+        - src/handlers/exposure.ts
+        External:
+        - '@aws-sdk/*'
+        Sourcemap: true
+        Target: es2022
+      SamResourceId: ExposureFunction
+    Properties:
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-dnczrvcl5cgt/saans-prod/d01e74a8b7c35244c5523664296456bf
+      Handler: exposure.handler
+      Description: Calculates cumulative PM2.5 dose & daily budget percentage based
+        on hours outdoors
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName:
+            Ref: ReadingsTable
+      Events:
+        GetExposure:
+          Type: HttpApi
+          Properties:
+            ApiId:
+              Ref: HttpApi
+            Path: /exposure
+            Method: GET
+  SchoolFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+        - src/handlers/school.ts
+        External:
+        - '@aws-sdk/*'
+        Sourcemap: true
+        Target: es2022
+      SamResourceId: SchoolFunction
+    Properties:
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-dnczrvcl5cgt/saans-prod/d9e14131cfc68e173cbc3ba47b0e35cf
+      Handler: school.handler
+      Description: Provides traffic-light status and outdoor play/assembly/PE clearance
+        for NCR schools
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName:
+            Ref: ReadingsTable
+      Events:
+        GetSchool:
+          Type: HttpApi
+          Properties:
+            ApiId:
+              Ref: HttpApi
+            Path: /school
+            Method: GET
+  SubscribeFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+        - src/handlers/subscribe.ts
+        External:
+        - '@aws-sdk/*'
+        Sourcemap: true
+        Target: es2022
+      SamResourceId: SubscribeFunction
+    Properties:
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-dnczrvcl5cgt/saans-prod/d54313009d74cb28b74f0d4ccd1c0de0
+      Handler: subscribe.handler
+      Description: Stores notification preferences in DynamoDB and registers SNS email
+        subscriptions
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: SubscriptionsTable
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - sns:Subscribe
+          Resource:
+            Ref: AlertsTopic
+      Events:
+        PostSubscribe:
+          Type: HttpApi
+          Properties:
+            ApiId:
+              Ref: HttpApi
+            Path: /subscribe
+            Method: POST
+  ChatFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+        - src/handlers/chatLambda.ts
+        External:
+        - '@aws-sdk/*'
+        Sourcemap: true
+        Target: es2022
+      SamResourceId: ChatFunction
+    Properties:
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-dnczrvcl5cgt/saans-prod/16a8decc782b8de2d540359b28490431
+      Handler: chatLambda.handler
+      Timeout: 25
+      Description: Grounded air-quality assistant (Bedrock, Gemini, or deterministic
+        fallback)
+      Environment:
+        Variables:
+          GEMINI_API_KEY:
+            Ref: GeminiApiKey
+          BEDROCK_REGION:
+            Ref: BedrockRegion
+          BEDROCK_MODEL_ID:
+            Ref: BedrockModelId
+          AI_DEFAULT_PROVIDER: auto
+      Policies:
+      - Statement:
+        - Effect: Allow
+          Action:
+          - bedrock:InvokeModel
+          Resource: '*'
+      Events:
+        PostChat:
+          Type: HttpApi
+          Properties:
+            ApiId:
+              Ref: HttpApi
+            Path: /chat
+            Method: POST
+  IngestFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+        - src/handlers/ingest.ts
+        External:
+        - '@aws-sdk/*'
+        Sourcemap: true
+        Target: es2022
+      SamResourceId: IngestFunction
+    Properties:
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-dnczrvcl5cgt/saans-prod/ce705f022c683d1174f1b5f8513bbb6b
+      Handler: ingest.handler
+      Timeout: 30
+      MemorySize: 512
+      Description: Ingests Open-Meteo & OpenAQ data for NCR presets every 30 mins
+        with TTL
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: ReadingsTable
+      Events:
+        ScheduledIngest:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(30 minutes)
+            Description: Fetch latest Open-Meteo & OpenAQ readings every 30 mins
+  AlertCheckFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+        - src/handlers/alertCheck.ts
+        External:
+        - '@aws-sdk/*'
+        Sourcemap: true
+        Target: es2022
+      SamResourceId: AlertCheckFunction
+    Properties:
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-dnczrvcl5cgt/saans-prod/10c9a2122849cf45f885b433f1fe9d7d
+      Handler: alertCheck.handler
+      Timeout: 30
+      Description: Evaluates subscriber thresholds against tomorrow forecast and triggers
+        SNS alerts
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName:
+            Ref: ReadingsTable
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: SubscriptionsTable
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - sns:Publish
+          Resource:
+            Ref: AlertsTopic
+      Events:
+        ScheduledAlerts:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(30 minutes)
+            Description: Check alert conditions for active subscribers
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Sub: saans-frontend-${AWS::AccountId}-${AWS::Region}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+    Metadata:
+      SamResourceId: FrontendBucket
+  CloudFrontOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name:
+          Fn::Sub: saans-oac-${EnvironmentName}
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+    Metadata:
+      SamResourceId: CloudFrontOAC
+  FrontendDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        HttpVersion: http2and3
+        PriceClass: PriceClass_100
+        Origins:
+        - Id: S3Origin
+          DomainName:
+            Fn::GetAtt:
+            - FrontendBucket
+            - RegionalDomainName
+          OriginAccessControlId:
+            Fn::GetAtt:
+            - CloudFrontOAC
+            - Id
+          S3OriginConfig: {}
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+          - GET
+          - HEAD
+          - OPTIONS
+          CachedMethods:
+          - GET
+          - HEAD
+          Compress: true
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+        CustomErrorResponses:
+        - ErrorCode: 403
+          ResponseCode: 200
+          ResponsePagePath: /index.html
+          ErrorCachingMinTTL: 10
+        - ErrorCode: 404
+          ResponseCode: 200
+          ResponsePagePath: /index.html
+          ErrorCachingMinTTL: 10
+    Metadata:
+      SamResourceId: FrontendDistribution
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: FrontendBucket
+      PolicyDocument:
+        Statement:
+        - Action: s3:GetObject
+          Effect: Allow
+          Resource:
+            Fn::Sub: ${FrontendBucket.Arn}/*
+          Principal:
+            Service: cloudfront.amazonaws.com
+          Condition:
+            StringEquals:
+              AWS:SourceArn:
+                Fn::Sub: arn:aws:cloudfront::${AWS::AccountId}:distribution/${FrontendDistribution.Id}
+    Metadata:
+      SamResourceId: FrontendBucketPolicy
+  OperationsDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName:
+        Fn::Sub: Saans-Operations-${EnvironmentName}
+      DashboardBody:
+        Fn::Sub: "{\n  \"widgets\": [\n    {\n      \"type\": \"metric\",\n      \"\
+          x\": 0, \"y\": 0, \"width\": 12, \"height\": 6,\n      \"properties\": {\n\
+          \        \"metrics\": [\n          [ \"AWS/ApiGateway\", \"Count\", \"ApiId\"\
+          , \"${HttpApi}\" ],\n          [ \".\", \"4xx\", \".\", \".\" ],\n     \
+          \     [ \".\", \"5xx\", \".\", \".\" ]\n        ],\n        \"period\":\
+          \ 300,\n        \"stat\": \"Sum\",\n        \"region\": \"${AWS::Region}\"\
+          ,\n        \"title\": \"API Gateway Request Volume & Errors\"\n      }\n\
+          \    },\n    {\n      \"type\": \"metric\",\n      \"x\": 12, \"y\": 0,\
+          \ \"width\": 12, \"height\": 6,\n      \"properties\": {\n        \"metrics\"\
+          : [\n          [ \"AWS/Lambda\", \"Invocations\", \"FunctionName\", \"${AirFunction}\"\
+          \ ],\n          [ \".\", \"Invocations\", \"FunctionName\", \"${VerdictFunction}\"\
+          \ ],\n          [ \".\", \"Invocations\", \"FunctionName\", \"${IngestFunction}\"\
+          \ ]\n        ],\n        \"period\": 300,\n        \"stat\": \"Sum\",\n\
+          \        \"region\": \"${AWS::Region}\",\n        \"title\": \"Lambda Invocations\"\
+          \n      }\n    }\n  ]\n}\n"
+    Metadata:
+      SamResourceId: OperationsDashboard
+  EstimatedChargesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName:
+        Fn::Sub: saans-billing-alarm-${EnvironmentName}
+      AlarmDescription: Free-tier protection alarm when charges exceed $10 USD
+      MetricName: EstimatedCharges
+      Namespace: AWS/Billing
+      Statistic: Maximum
+      Period: 21600
+      EvaluationPeriods: 1
+      Threshold: 10
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+      - Name: Currency
+        Value: USD
+    Metadata:
+      SamResourceId: EstimatedChargesAlarm
+Outputs:
+  ApiUrl:
+    Description: HTTP API Gateway base endpoint URL
+    Value:
+      Fn::Sub: https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com
+  CloudFrontUrl:
+    Description: Production CloudFront CDN distribution URL
+    Value:
+      Fn::Sub: https://${FrontendDistribution.DomainName}
+  DistributionId:
+    Description: CloudFront Distribution ID for cache invalidation
+    Value:
+      Ref: FrontendDistribution
+  S3BucketName:
+    Description: S3 bucket name for deployment sync
+    Value:
+      Ref: FrontendBucket
